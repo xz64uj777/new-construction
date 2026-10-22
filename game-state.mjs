@@ -2,7 +2,7 @@ export const CONTRACT_STAGES = [
   { id: "load-loader", title: "Load the wheel loader", kind: "logistics", action: "load-loader", location: "depot", machine: "truck", target: "loader" },
   { id: "haul-loader", title: "Deliver the wheel loader", kind: "logistics", action: "arrive-site", location: "site" },
   { id: "unload-loader", title: "Unload the wheel loader", kind: "logistics", action: "unload-loader", location: "site", machine: "truck" },
-  { id: "clear-grade", title: "Clear and grade the house pad", kind: "work", machine: "loader", skill: "earthworks", units: 3, crewCost: 550, reworkCost: 550 },
+  { id: "clear-grade", title: "Clear and grade the house pad", kind: "work", machine: "loader", skill: "earthworks", units: 5, crewCost: 550, reworkCost: 550 },
   { id: "return-for-excavator", title: "Return to the depot", kind: "logistics", action: "arrive-depot", location: "depot" },
   { id: "rent-excavator", title: "Rent a mini excavator", kind: "logistics", action: "rent-excavator", location: "depot", cost: 1800 },
   { id: "load-excavator", title: "Load the rented excavator", kind: "logistics", action: "load-excavator", location: "depot", machine: "truck", target: "excavator" },
@@ -43,7 +43,6 @@ export function createCareer() {
     onTrailer: [],
     truckAtSite: false,
     materials: { concrete: false, lumber: false, aggregate: false, loaded: false },
-    paidStages: [],
     completedContracts: 0,
     settled: false,
     contractComplete: false,
@@ -60,7 +59,7 @@ export function currentStage(career) {
 }
 
 function restoreTaskCheckpoint(career, index) {
-  career.rentals = !career.owned.includes("excavator") && index >= 6 && index <= 20 ? ["excavator"] : [];
+  career.rentals = index >= 6 && index <= 20 ? ["excavator"] : [];
   career.atSite = [];
   if (index >= 3 && index <= 22) career.atSite.push("loader");
   if (index >= 9 && index <= 18) career.atSite.push("excavator");
@@ -121,25 +120,20 @@ export function advanceCareer(career, action, context = {}) {
   if (stage.machine && context.machine !== stage.machine) return failure(`Use the ${stage.machine} for this action.`);
   if (stage.target && context.target !== stage.target) return failure(`Bring the ${stage.target} to the lowboy.`);
   if (stage.target && !context.nearTarget) return failure(`Move the lowboy close to the ${stage.target}.`);
-  const paidStages = Array.isArray(career.paidStages) ? career.paidStages : (career.paidStages = []);
-  const alreadyPaid = paidStages.includes(stage.id);
-  const ownsExcavator = action === "rent-excavator" && career.owned.includes("excavator");
-  const effectiveCost = stage.cost && !alreadyPaid && !ownsExcavator ? stage.cost : 0;
-  if (effectiveCost && career.cash < effectiveCost) return failure(`This costs $${effectiveCost.toLocaleString()}.`);
-  if (action === "load-excavator" && !hasMachine(career, "excavator")) return failure("Rent the excavator first.");
+  if (stage.cost && career.cash < stage.cost) return failure(`This costs $${stage.cost.toLocaleString()}.`);
+  if (action === "load-excavator" && !career.rentals.includes("excavator")) return failure("Rent the excavator first.");
   if (action === "load-loader" && !career.owned.includes("loader")) return failure("The wheel loader is not in your fleet.");
   if (action === "load-excavator-return" && !hasMachineAtSite(career, "excavator")) return failure("The rental excavator is not at the jobsite.");
   if (action === "load-loader-return" && !hasMachineAtSite(career, "loader")) return failure("The wheel loader is not at the jobsite.");
   if (action === "unload-loader" && !career.onTrailer.includes("loader")) return failure("The wheel loader is not on the lowboy.");
   if (action === "unload-excavator" && !career.onTrailer.includes("excavator")) return failure("The excavator is not on the lowboy.");
   if (action === "unload-materials" && !career.materials.loaded) return failure("Load the contract materials first.");
-  if (action === "return-excavator" && (!hasMachine(career, "excavator") || !career.onTrailer.includes("excavator"))) return failure("Bring the rental excavator back on the lowboy.");
+  if (action === "return-excavator" && (!career.rentals.includes("excavator") || !career.onTrailer.includes("excavator"))) return failure("Bring the rental excavator back on the lowboy.");
   if (action === "unload-loader-return" && !career.onTrailer.includes("loader")) return failure("The wheel loader is not on the lowboy.");
   if (stage.material && !career.materials[stage.material]) return failure(`Deliver ${stage.material} before starting this work.`);
 
-  if (effectiveCost) career.cash -= effectiveCost;
-  if (stage.cost && !alreadyPaid) paidStages.push(stage.id);
-  if (action === "rent-excavator" && !career.rentals.includes("excavator") && !career.owned.includes("excavator")) career.rentals.push("excavator");
+  if (stage.cost) career.cash -= stage.cost;
+  if (action === "rent-excavator") career.rentals.push("excavator");
   if (["load-loader", "load-excavator", "load-excavator-return", "load-loader-return"].includes(action)) {
     const machine = action.includes("excavator") ? "excavator" : "loader";
     career.onTrailer.push(machine);

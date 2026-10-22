@@ -46,8 +46,7 @@ test("manual work requires the correct delivered machine and work zone", () => {
   assert.equal(performWork(career, { machine: "excavator", location: "site", inZone: true }).ok, false);
   assert.equal(performWork(career, { machine: "loader", location: "depot", inZone: true }).ok, false);
   assert.equal(career.workProgress, 0);
-  performWork(career, { machine: "loader", location: "site", inZone: true });
-  performWork(career, { machine: "loader", location: "site", inZone: true });
+  for (let i = 0; i < 4; i++) performWork(career, { machine: "loader", location: "site", inZone: true });
   assert.equal(performWork(career, { machine: "loader", location: "site", inZone: true }).completed, true);
   assert.equal(currentStage(career).id, "return-for-excavator");
 });
@@ -149,7 +148,7 @@ test("a house contract can finish through direct work and qualified crew", () =>
   move("load-loader", { location: "depot", machine: "truck", target: "loader", nearTarget: true });
   move("arrive-site", { location: "site" });
   move("unload-loader", { location: "site", machine: "truck" });
-  for (let i = 0; i < 3; i++) performWork(career, { machine: "loader", location: "site", inZone: true });
+  for (let i = 0; i < 5; i++) performWork(career, { machine: "loader", location: "site", inZone: true });
   move("arrive-depot", { location: "depot" });
   move("rent-excavator", { location: "depot" });
   move("load-excavator", { location: "depot", machine: "truck", target: "excavator", nearTarget: true });
@@ -190,24 +189,3 @@ test("career state round-trips through storage", () => {
   assert.equal(saveCareer(career, storage), true);
   assert.deepEqual(loadCareer(storage), career);
 });
-
-test("rework does not re-charge already paid logistics stages or owned excavator rental", () => {
-  const career = createCareer();
-  advanceTo(career, "order-concrete");
-  advanceCareer(career, "order-concrete", { location: "site" });
-  assert.equal(career.cash, 15000 - 2400);
-  const rework = restartTask(career, "order-concrete");
-  assert.equal(rework.ok, true);
-  const cashAfterReworkFee = career.cash;
-  const repeatOrder = advanceCareer(career, "order-concrete", { location: "site" });
-  assert.equal(repeatOrder.ok, true);
-  assert.equal(career.cash, cashAfterReworkFee);
-
-  career.owned.push("excavator");
-  advanceTo(career, "rent-excavator");
-  const cashBeforeRentStage = career.cash;
-  const rentStep = advanceCareer(career, "rent-excavator", { location: "depot" });
-  assert.equal(rentStep.ok, true);
-  assert.equal(career.cash, cashBeforeRentStage);
-});
-
