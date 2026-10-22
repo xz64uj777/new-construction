@@ -8,21 +8,21 @@ The game is a browser-based 3D prototype built with Three.js. Open `index.html` 
 
 Three.js is loaded from jsDelivr, so an internet connection is required.
 
-## Current prototype features
+## Current prototype
 
-- 3D worksite, road, marked foundation pad, basic equipment models, orbit camera and touch-friendly controls.
-- Contract board with five different jobs: house foundation, warehouse slab, bridge abutment, stormwater pipe run and access road.
-- Each contract spawns only its assigned equipment list.
-- Drive equipment around the site, switch machines, operate basic excavator/pump/crane/dump-bed interactions, deploy pump stabilizers, pump concrete, and advance construction stages through inspections.
-- Responsive HUD intended for phones and foldable screens.
+- One playable starter-house contract, from lowboy delivery through site preparation, excavation, concrete foundation, lumber/frame, driveway and fleet return.
+- Tractor/lowboy and wheel loader are owned; the mini excavator is rented for the foundation.
+- Player-operated work and qualified crew assignments; crew, rental and material costs affect career cash.
+- Contract settlement pays once; the job panel can restart any completed task, charge a rework fee, and reset later stages.
+- Career cash, fleet ownership, contract stage, materials and crew persist in local browser storage.
+- Phone-first dual joysticks — left stick drives, right stick runs the loader bucket or excavator boom — plus touch buttons, marked work zones, route map and visible worksite changes. Vehicle and soil behavior remains simplified.
 
 ## Development roadmap
 
-1. Improve vehicle-specific physics, operator controls, attachments and machine animations.
-2. Implement project-specific material quantities, loading/unloading, soil movement and concrete placement that changes the actual work surface.
-3. Add deeper construction sequencing, budgets, deliveries, equipment rental/ownership, failure conditions and save/load.
-4. Replace prototype geometry with higher quality equipment models and improve mobile performance.
-5. Package a native Android build after the core game and controls are stable.
+- Add larger contracts and equipment such as a dozer, dump truck, roller and concrete equipment.
+- Expand fleet purchases, rentals, crew qualifications and career progression.
+- Improve construction materials, machine attachments, site interactions and mobile performance.
+- Revisit Android packaging if installable/offline play or measured performance benefits justify it.
 
 ## Important
 
