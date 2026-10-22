@@ -190,3 +190,24 @@ test("career state round-trips through storage", () => {
   assert.equal(saveCareer(career, storage), true);
   assert.deepEqual(loadCareer(storage), career);
 });
+
+test("rework does not re-charge already paid logistics stages or owned excavator rental", () => {
+  const career = createCareer();
+  advanceTo(career, "order-concrete");
+  advanceCareer(career, "order-concrete", { location: "site" });
+  assert.equal(career.cash, 15000 - 2400);
+  const rework = restartTask(career, "order-concrete");
+  assert.equal(rework.ok, true);
+  const cashAfterReworkFee = career.cash;
+  const repeatOrder = advanceCareer(career, "order-concrete", { location: "site" });
+  assert.equal(repeatOrder.ok, true);
+  assert.equal(career.cash, cashAfterReworkFee);
+
+  career.owned.push("excavator");
+  advanceTo(career, "rent-excavator");
+  const cashBeforeRentStage = career.cash;
+  const rentStep = advanceCareer(career, "rent-excavator", { location: "depot" });
+  assert.equal(rentStep.ok, true);
+  assert.equal(career.cash, cashBeforeRentStage);
+});
+
