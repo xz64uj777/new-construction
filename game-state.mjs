@@ -180,6 +180,7 @@ export function performWork(career, { machine, location, inZone } = {}) {
   const stage = currentStage(career);
   if (!stage || stage.kind !== "work") return failure("There is no site work at this stage.");
   if (location !== "site" || !inZone) return failure("Move into the marked work zone first.");
+  if (stage.id === "clear-grade" && !arguments[1]?.shrubRemoved) return failure("Physically push a shrub into the brown spoil pile to count progress.");
   if (stage.machine && machine !== stage.machine) return failure(`Use the ${stage.machine} for this work.`);
   if (stage.machine && !hasMachineAtSite(career, stage.machine)) return failure(`The ${stage.machine} must be delivered to the site.`);
   if (stage.material && !career.materials[stage.material]) return failure(`Deliver ${stage.material} before starting this work.`);
