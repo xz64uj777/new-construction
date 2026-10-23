@@ -91,6 +91,7 @@ export function restartTask(career, stageId) {
   const resumeState = JSON.parse(JSON.stringify(career));
   delete resumeState.replayResumeState;
   delete resumeState.replayTargetIndex;
+  resumeState.cash -= cost;
   career.cash -= cost;
   career.replayResumeState = resumeState;
   career.replayTargetIndex = index;
