@@ -85,13 +85,20 @@ export function restartTask(career, stageId) {
     return { ok: true, cost: 0, nextStage: stage, rewound: false };
   }
   const cost = stage.kind === "work" ? stage.reworkCost : 250;
-  if (career.cash < cost) return failure(`Rework costs $${cost.toLocaleString()}.`);
+  if (career.cash < cost) return failure(`Rework costs ${cost.toLocaleString()}.`);
+  // Keep a full checkpoint so replaying an earlier task never destroys the
+  // player's current career position or completed progress.
+  const resumeState = JSON.parse(JSON.stringify(career));
+  delete resumeState.replayResumeState;
+  delete resumeState.replayTargetIndex;
   career.cash -= cost;
+  career.replayResumeState = resumeState;
+  career.replayTargetIndex = index;
   career.stageIndex = index;
   career.workProgress = 0;
   career.contractComplete = false;
   restoreTaskCheckpoint(career, index);
-  return { ok: true, cost, nextStage: stage, rewound: true, cash: career.cash };
+  return { ok: true, cost, nextStage: stage, rewound: true, replay: true, resumeStage: resumeState.stageIndex, cash: career.cash };
 }
 
 function failure(reason) {
@@ -107,6 +114,17 @@ function hasMachineAtSite(career, machine) {
 }
 
 function advanceStage(career) {
+  // Replaying an earlier task is a temporary detour. Once that one task is
+  // completed, restore the exact career state and resume the task the player
+  // was on before replaying.
+  if (career.replayResumeState && career.stageIndex === career.replayTargetIndex) {
+    const saved = career.replayResumeState;
+    for (const key of Object.keys(career)) delete career[key];
+    Object.assign(career, saved);
+    delete career.replayResumeState;
+    delete career.replayTargetIndex;
+    return currentStage(career);
+  }
   career.stageIndex += 1;
   career.workProgress = 0;
   return currentStage(career);
