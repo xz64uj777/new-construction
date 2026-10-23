@@ -106,7 +106,7 @@ box(1.5,.12,.9,M.yellow,0,.35,2.0,displayForklift);box(1.5,.1,.9,M.yellow,0,.2,2
 // A second, outward-facing sign panel helps make the store name readable on approach.
 const storeSignFront=new THREE.Sprite(new THREE.SpriteMaterial({map:storeSignTexture,transparent:false,depthTest:false,depthWrite:false}));
 storeSignFront.position.set(-52,6.5,-12.44);storeSignFront.scale.set(11.4,1.78,1);storeSignFront.renderOrder=21;scene.add(storeSignFront);
-const depotExcavator=makeExcavator();depotExcavator.position.set(-17,0,-12);depotExcavator.rotation.y=Math.PI/2;scene.add(depotExcavator);
+// Single dealership excavator display is already created above; do not duplicate it.
 const cargo=new THREE.Group();box(3,.32,.4,M.wood,0,.2,0,cargo);box(3,.32,.4,M.wood,0,.58,0,cargo);box(3,.32,.4,M.wood,0,.96,0,cargo);for(const [x,z] of [[-1,1],[1,1],[-1,-1],[1,-1]])box(.7,.55,.7,M.dark,x,.38,z,cargo);scene.add(cargo);cargo.visible=false;
 let career=loadCareer(),active='truck',cameraMode=0,orbit=0,mouse=null,driveMode='joystick',pendingReplay=null,parked=false,driveSensitivity=1,machineSensitivity=1,armSpeedSensitivity=1,vehicleSpeedScale=1,workStroke=0;let mapScale=1,mapDrag=null,mapOffset={x:0,y:0};const held={};const axes={drive:0,steer:0,lx:0,ly:0,rx:0,ry:0};const $=s=>document.querySelector(s);const stageIndex=id=>CONTRACT_STAGES.findIndex(stage=>stage.id===id);const vehicleById={truck:rig,loader,excavator};
 function stageFraction(id){const i=stageIndex(id),s=CONTRACT_STAGES[i];if(career.stageIndex>i)return 1;if(career.stageIndex===i&&s?.kind==='work')return career.workProgress/s.units;return 0}
