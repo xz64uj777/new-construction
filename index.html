@@ -129,7 +129,7 @@ function syncVehicleSelect(){const sel=$('#vehicleSelect'),options=[['truck','TR
 function syncStorePrompt(){const near=Math.abs(rig.position.x+52)<13&&Math.abs(rig.position.z+15)<9;const eligible=near&&active==='truck';$('#storeBtn').style.display=eligible?'block':'none';$('#storeBtn').textContent='ENTER STORE';}
 $('#vehicleSelect').addEventListener('change',()=>{active=$('#vehicleSelect').value;parked=false;axes.drive=axes.steer=axes.lx=axes.ly=0;updateHUD(`${active.toUpperCase()} selected.`)});
 $('#brandReopen').addEventListener('click',()=>{$('#brandPanel').classList.remove('collapsed');$('#brandReopen').classList.remove('show')});
-$('#missionToggle').addEventListener('click',()=>{const hidden=$('#mission').classList.toggle('hidden');$('#missionToggle').textContent=hidden?'SHOW TASK MENU ▼':'HIDE TASK MENU ▲';$('#missionToggle').setAttribute('aria-expanded',String(!hidden))});
+
 $('#mapZoomIn').addEventListener('click',()=>{mapScale=Math.min(2.8,mapScale*1.25);applyMapTransform()});
 $('#mapZoomOut').addEventListener('click',()=>{mapScale=Math.max(.7,mapScale/1.25);applyMapTransform()});
 $('#mapReset').addEventListener('click',()=>{mapScale=1;mapOffset={x:0,y:0};applyMapTransform()});
