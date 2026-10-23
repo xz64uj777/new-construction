@@ -82,7 +82,28 @@ const storeSignTexture=new THREE.CanvasTexture(storeSignCanvas);storeSignTexture
 const storeSignFace=new THREE.Mesh(new THREE.PlaneGeometry(11.4,1.15),new THREE.MeshBasicMaterial({map:storeSignTexture}));
 storeSignFace.position.set(-52,6.5,-12.31);storeSignFace.rotation.y=Math.PI;scene.add(storeSignFace);
 
+// MACHINES R US lot: striped customer parking, equipment display pads, and parked rental inventory.
+for(let i=0;i<5;i++){
+ const px=-60+i*4;
+ box(3.35,.025,.16,M.white,px,.035,-20);
+ box(3.35,.025,.16,M.white,px,.035,-14.2);
+ box(.16,.025,5.8,M.white,px-1.65,.035,-17.1);
+ box(.16,.025,5.8,M.white,px+1.65,.035,-17.1);
+}
+box(2.8,.04,1.8,M.yellow,-52,.06,-20.5);
+for(const [cx,cz] of [[-58,-22],[-46,-22],[-34,-22]]){const cone=new THREE.Mesh(new THREE.ConeGeometry(.32,.9,8),mat(0xf47b32));cone.position.set(cx,.48,cz);cone.castShadow=true;scene.add(cone);cyl(.4,.12,M.dark,cx,.08,cz)}
 const depotLoader=makeLoader();depotLoader.position.set(-29,0,-12);depotLoader.rotation.y=-Math.PI/2;scene.add(depotLoader);
+// Display-only excavator in the sales row: separate scene model, not selectable or usable.
+const displayExcavator=makeExcavator();displayExcavator.position.set(-18,0,-12);displayExcavator.rotation.y=-Math.PI/2;scene.add(displayExcavator);
+// Compact display forklift made from visible chassis, mast, forks and wheels.
+const displayForklift=new THREE.Group();displayForklift.position.set(-40,0,-12);
+box(2.2,.65,2.8,M.yellow,0,.8,0,displayForklift);box(1.45,1.05,1.25,M.glass,0,1.65,-.15,displayForklift);
+for(const x of [-1,1])for(const z of [-.85,.9]){const w=cyl(.38,.28,M.rubber,x,.4,z,displayForklift);w.rotation.z=Math.PI/2}
+for(const x of [-.62,.62])box(.12,2.6,.14,M.dark,x,1.65,1.25,displayForklift);
+box(1.5,.12,.9,M.yellow,0,.35,2.0,displayForklift);box(1.5,.1,.9,M.yellow,0,.2,2.1,displayForklift);scene.add(displayForklift);
+// A second, outward-facing sign panel helps make the store name readable on approach.
+const storeSignFront=new THREE.Mesh(new THREE.PlaneGeometry(11.4,1.15),new THREE.MeshBasicMaterial({map:storeSignTexture}));
+storeSignFront.position.set(-52,6.5,-12.37);scene.add(storeSignFront);
 const depotExcavator=makeExcavator();depotExcavator.position.set(-17,0,-12);depotExcavator.rotation.y=Math.PI/2;scene.add(depotExcavator);
 const cargo=new THREE.Group();box(3,.32,.4,M.wood,0,.2,0,cargo);box(3,.32,.4,M.wood,0,.58,0,cargo);box(3,.32,.4,M.wood,0,.96,0,cargo);for(const [x,z] of [[-1,1],[1,1],[-1,-1],[1,-1]])box(.7,.55,.7,M.dark,x,.38,z,cargo);scene.add(cargo);cargo.visible=false;
 let career=loadCareer(),active='truck',cameraMode=0,orbit=0,mouse=null,driveMode='joystick',pendingReplay=null,parked=false,driveSensitivity=1,machineSensitivity=1,armSpeedSensitivity=1,vehicleSpeedScale=1,workStroke=0;let mapScale=1,mapDrag=null,mapOffset={x:0,y:0};const held={};const axes={drive:0,steer:0,lx:0,ly:0,rx:0,ry:0};const $=s=>document.querySelector(s);const stageIndex=id=>CONTRACT_STAGES.findIndex(stage=>stage.id===id);const vehicleById={truck:rig,loader,excavator};
