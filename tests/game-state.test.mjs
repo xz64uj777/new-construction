@@ -46,8 +46,9 @@ test("manual work requires the correct delivered machine and work zone", () => {
   assert.equal(performWork(career, { machine: "excavator", location: "site", inZone: true }).ok, false);
   assert.equal(performWork(career, { machine: "loader", location: "depot", inZone: true }).ok, false);
   assert.equal(career.workProgress, 0);
-  for (let i = 0; i < 4; i++) performWork(career, { machine: "loader", location: "site", inZone: true });
-  assert.equal(performWork(career, { machine: "loader", location: "site", inZone: true }).completed, true);
+  assert.equal(performWork(career, { machine: "loader", location: "site", inZone: true }).ok, false, "ordinary work strokes cannot clear shrubs");
+  for (let i = 0; i < 4; i++) performWork(career, { machine: "loader", location: "site", inZone: true, shrubRemoved: true });
+  assert.equal(performWork(career, { machine: "loader", location: "site", inZone: true, shrubRemoved: true }).completed, true);
   assert.equal(currentStage(career).id, "return-for-excavator");
 });
 
@@ -148,7 +149,7 @@ test("a house contract can finish through direct work and qualified crew", () =>
   move("load-loader", { location: "depot", machine: "truck", target: "loader", nearTarget: true });
   move("arrive-site", { location: "site" });
   move("unload-loader", { location: "site", machine: "truck" });
-  for (let i = 0; i < 5; i++) performWork(career, { machine: "loader", location: "site", inZone: true });
+  for (let i = 0; i < 5; i++) performWork(career, { machine: "loader", location: "site", inZone: true, shrubRemoved: true });
   move("arrive-depot", { location: "depot" });
   move("rent-excavator", { location: "depot" });
   move("load-excavator", { location: "depot", machine: "truck", target: "excavator", nearTarget: true });
