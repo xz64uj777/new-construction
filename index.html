@@ -160,5 +160,8 @@ missionToggle.addEventListener('click',()=>{
   missionToggle.textContent=collapsed?'TASK VIEW':'HIDE TASK';
   missionToggle.setAttribute('aria-expanded',String(!collapsed));
 });
-restoreCareerWorld();updateHUD();$('#brandPanel').classList.add('collapsed');$('#brandReopen').classList.add('show');requestAnimationFrame(animate);
+restoreCareerWorld();
+// At the depot, keep the payloader visibly parked beside the lowboy so the opening scene is ready for loading. Do not leave it hidden/stacked on the trailer from a saved session.
+if(!career.truckAtSite&&career.onTrailer.includes('loader')){career.onTrailer=career.onTrailer.filter(id=>id!=='loader');moveOffTrailer(loader,rig.position.x+5,rig.position.z+4);saveCareer(career)}
+updateHUD();$('#brandPanel').classList.add('collapsed');$('#brandReopen').classList.add('show');requestAnimationFrame(animate);
 </script></body></html>
