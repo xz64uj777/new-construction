@@ -1,0 +1,47 @@
+name: Check free Android build runner
+on:
+  push:
+    branches:
+      - test/free-github-apk-runner
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out construction project
+        uses: actions/checkout@v4
+      - name: Inspect free runner and project prerequisites
+        shell: bash
+        run: |
+          set +e
+          echo "=== GitHub-hosted runner ==="
+          uname -a
+          echo "CPU cores: $(nproc)"
+          echo "Memory:"
+          free -h
+          echo "Disk:"
+          df -h /
+          echo "=== Android build tools ==="
+          echo "ANDROID_HOME=${ANDROID_HOME:-not set}"
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-not set}"
+          command -v java || true
+          command -v adb || true
+          command -v sdkmanager || true
+          echo "=== Unreal Engine ==="
+          command -v UnrealEditor || true
+          command -v UnrealBuildTool || true
+          for p in /opt/UnrealEngine /usr/local/UnrealEngine /home/runner/UnrealEngine; do
+            if [ -d "$p" ]; then echo "Found engine directory: $p"; fi
+          done
+          echo "=== Project files ==="
+          find . -maxdepth 4 \( -name '*.uproject' -o -name 'Build.cs' -o -name 'AndroidManifest.xml' \) -print
+          if ! find . -name '*.uproject' -print -quit | grep -q .; then
+            echo "::warning::No Unreal .uproject exists in this repository; an APK cannot be compiled yet."
+          fi
+          if ! command -v UnrealEditor >/dev/null 2>&1 && ! command -v UnrealBuildTool >/dev/null 2>&1; then
+            echo "::warning::Unreal Engine is not installed on this GitHub-hosted runner."
+          fi
+          echo "Diagnostic completed. This job checks runner capacity; it does not claim to build an APK."
