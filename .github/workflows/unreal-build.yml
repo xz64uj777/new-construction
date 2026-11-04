@@ -1,4 +1,4 @@
-name: Unreal Engine build check
+name: Unreal Engine 5.6 BuildWorks build
 
 on:
   workflow_dispatch:
@@ -13,13 +13,15 @@ permissions:
   contents: read
 
 jobs:
-  build-check:
-    runs-on: ubuntu-latest
+  build:
+    # UE 5.6's documented Linux toolchain is based on Ubuntu 22.04.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
     steps:
-      - name: Check out project
+      - name: Check out BuildWorks
         uses: actions/checkout@v4
 
-      - name: Validate Unreal project scaffold
+      - name: Validate BuildWorks project
         shell: bash
         run: |
           set -euo pipefail
@@ -28,54 +30,61 @@ jobs:
           from pathlib import Path
           p = Path('Unreal/BuildWorks/BuildWorks.uproject')
           data = json.loads(p.read_text())
-          assert data['FileVersion'] == 3
-          assert data['EngineAssociation'] == '5.6'
-          assert any(m['Name'] == 'BuildWorks' for m in data['Modules'])
-          print('Project descriptor is valid; Engine association:', data['EngineAssociation'])
+          assert data['FileVersion'] == 3, 'Unexpected .uproject FileVersion'
+          assert data['EngineAssociation'] == '5.6', 'Project must target Unreal Engine 5.6'
+          assert any(m['Name'] == 'BuildWorks' for m in data['Modules']), 'BuildWorks module missing'
+          print('BuildWorks project descriptor: PASS')
           PY
           test -f Unreal/BuildWorks/Source/BuildWorks/BuildWorks.Build.cs
           test -f Unreal/BuildWorks/Source/BuildWorks/BuildWorks.cpp
           test -f Unreal/BuildWorks/Source/BuildWorks.Target.cs
           test -f Unreal/BuildWorks/Source/BuildWorksEditor.Target.cs
-          echo 'Required Unreal C++ source and target files are present.'
+          echo 'BuildWorks C++ scaffold: PASS'
 
-      - name: Verify private Epic Unreal Engine access
+      - name: Authenticate to Epic and clone Unreal Engine 5.6
         env:
           UE_GITHUB_TOKEN: ${{ secrets.UE_GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
           if [[ -z "${UE_GITHUB_TOKEN:-}" ]]; then
-            echo "::error::Missing repository Actions secret UE_GITHUB_TOKEN. Add a fine-grained token with read-only Contents access to EpicGames/UnrealEngine."
+            echo "::error::Actions secret UE_GITHUB_TOKEN is missing."
             exit 1
           fi
           AUTH_HEADER="$(printf 'x-access-token:%s' "$UE_GITHUB_TOKEN" | base64 -w0)"
-          if git -c http.extraheader="AUTHORIZATION: basic $AUTH_HEADER" ls-remote https://github.com/EpicGames/UnrealEngine.git HEAD >/dev/null; then
-            echo "Epic private repository authentication succeeded."
-            echo "Epic private repository authentication: **PASS**" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::error::The Actions token cannot read EpicGames/UnrealEngine. Check token repository access and organization approval."
+          git -c http.extraheader="AUTHORIZATION: basic $AUTH_HEADER" ls-remote https://github.com/EpicGames/UnrealEngine.git refs/heads/5.6 >/dev/null || {
+            echo "::error::GitHub Actions cannot read EpicGames/UnrealEngine branch 5.6. The token must explicitly have Contents: Read access to EpicGames/UnrealEngine and any required EpicGames organization approval."
             exit 1
-          fi
+          }
+          git -c http.extraheader="AUTHORIZATION: basic $AUTH_HEADER" clone --depth 1 --branch 5.6 https://github.com/EpicGames/UnrealEngine.git "$RUNNER_TEMP/UnrealEngine"
+          echo "Epic Unreal Engine 5.6 source checkout: PASS" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Detect engine and attempt compile
+      - name: Install Linux build dependencies
         shell: bash
         run: |
           set -euo pipefail
-          UE_ROOT="${UE_ROOT:-}"
-          for candidate in /opt/UnrealEngine /opt/ue /UnrealEngine "$HOME/UnrealEngine"; do
-            if [[ -z "$UE_ROOT" && -x "$candidate/Engine/Build/BatchFiles/Linux/Build.sh" ]]; then
-              UE_ROOT="$candidate"
-            fi
-          done
-          if [[ -x "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" ]]; then
-            "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" BuildWorksEditor Linux Development               -Project="$GITHUB_WORKSPACE/Unreal/BuildWorks/BuildWorks.uproject"               -WaitMutex -NoHotReloadFromIDE
-          else
-            {
-              echo '## Unreal compile status'
-              echo 'The project scaffold passed validation, but Unreal Engine 5.6 is not installed on this GitHub-hosted runner.'
-              echo 'A real C++ compile is blocked until an authorized UE installation is provisioned and exposed through UE_ROOT.'
-              echo 'The workflow deliberately does not download Unreal Engine or use an unlicensed distribution.'
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo 'UE 5.6 not found; scaffold validation passed, compile unavailable.'
-          fi
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang lld cmake ninja-build             mono-complete dos2unix libssl-dev libx11-dev libxcursor-dev             libxinerama-dev libxrandr-dev libxi-dev libgl1-mesa-dev             libvulkan1 vulkan-tools
+
+      - name: Download Unreal prerequisites and generate project files
+        working-directory: ${{ runner.temp }}/UnrealEngine
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Setup.sh
+          ./GenerateProjectFiles.sh
+
+      - name: Build Unreal Editor
+        working-directory: ${{ runner.temp }}/UnrealEngine
+        shell: bash
+        run: |
+          set -euo pipefail
+          Engine/Build/BatchFiles/Linux/Build.sh UnrealEditor Linux Development             -WaitMutex -NoHotReloadFromIDE
+
+      - name: Build BuildWorks Editor target
+        working-directory: ${{ runner.temp }}/UnrealEngine
+        shell: bash
+        run: |
+          set -euo pipefail
+          Engine/Build/BatchFiles/Linux/Build.sh BuildWorksEditor Linux Development             -Project="$GITHUB_WORKSPACE/Unreal/BuildWorks/BuildWorks.uproject"             -WaitMutex -NoHotReloadFromIDE
+          echo "BuildWorks Editor compile: PASS" >> "$GITHUB_STEP_SUMMARY"
