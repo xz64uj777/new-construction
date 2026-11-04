@@ -1,0 +1,62 @@
+name: Unreal Engine build check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - unreal-bootstrap
+    paths:
+      - 'Unreal/BuildWorks/**'
+      - '.github/workflows/unreal-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Validate Unreal project scaffold
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('Unreal/BuildWorks/BuildWorks.uproject')
+          data = json.loads(p.read_text())
+          assert data['FileVersion'] == 3
+          assert data['EngineAssociation'] == '5.6'
+          assert any(m['Name'] == 'BuildWorks' for m in data['Modules'])
+          print('Project descriptor is valid; Engine association:', data['EngineAssociation'])
+          PY
+          test -f Unreal/BuildWorks/Source/BuildWorks/BuildWorks.Build.cs
+          test -f Unreal/BuildWorks/Source/BuildWorks/BuildWorks.cpp
+          test -f Unreal/BuildWorks/Source/BuildWorks.Target.cs
+          test -f Unreal/BuildWorks/Source/BuildWorksEditor.Target.cs
+          echo 'Required Unreal C++ source and target files are present.'
+
+      - name: Detect engine and attempt compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          UE_ROOT="${UE_ROOT:-}"
+          for candidate in /opt/UnrealEngine /opt/ue /UnrealEngine "$HOME/UnrealEngine"; do
+            if [[ -z "$UE_ROOT" && -x "$candidate/Engine/Build/BatchFiles/Linux/Build.sh" ]]; then
+              UE_ROOT="$candidate"
+            fi
+          done
+          if [[ -x "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" ]]; then
+            "$UE_ROOT/Engine/Build/BatchFiles/Linux/Build.sh" BuildWorksEditor Linux Development               -Project="$GITHUB_WORKSPACE/Unreal/BuildWorks/BuildWorks.uproject"               -WaitMutex -NoHotReloadFromIDE
+          else
+            {
+              echo '## Unreal compile status'
+              echo 'The project scaffold passed validation, but Unreal Engine 5.6 is not installed on this GitHub-hosted runner.'
+              echo 'A real C++ compile is blocked until an authorized UE installation is provisioned and exposed through UE_ROOT.'
+              echo 'The workflow deliberately does not download Unreal Engine or use an unlicensed distribution.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo 'UE 5.6 not found; scaffold validation passed, compile unavailable.'
+          fi
