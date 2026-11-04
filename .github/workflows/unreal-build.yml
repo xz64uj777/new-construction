@@ -19,25 +19,6 @@ jobs:
       - name: Check out project
         uses: actions/checkout@v4
 
-      - name: Verify private Epic Unreal Engine access
-        env:
-          UE_GITHUB_TOKEN: ${{ secrets.UE_GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -z "${UE_GITHUB_TOKEN:-}" ]]; then
-            echo "::error::Missing repository Actions secret UE_GITHUB_TOKEN. Add a fine-grained token with read-only Contents access to EpicGames/UnrealEngine."
-            exit 1
-          fi
-          AUTH_HEADER="$(printf 'x-access-token:%s' "$UE_GITHUB_TOKEN" | base64 -w0)"
-          if git -c http.extraheader="AUTHORIZATION: basic $AUTH_HEADER" ls-remote https://github.com/EpicGames/UnrealEngine.git HEAD >/dev/null; then
-            echo "Epic private repository authentication succeeded."
-            echo "Epic private repository authentication: **PASS**" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "::error::The Actions token cannot read EpicGames/UnrealEngine. Check token repository access and organization approval."
-            exit 1
-          fi
-
       - name: Validate Unreal project scaffold
         shell: bash
         run: |
@@ -57,6 +38,25 @@ jobs:
           test -f Unreal/BuildWorks/Source/BuildWorks.Target.cs
           test -f Unreal/BuildWorks/Source/BuildWorksEditor.Target.cs
           echo 'Required Unreal C++ source and target files are present.'
+
+      - name: Verify private Epic Unreal Engine access
+        env:
+          UE_GITHUB_TOKEN: ${{ secrets.UE_GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${UE_GITHUB_TOKEN:-}" ]]; then
+            echo "::error::Missing repository Actions secret UE_GITHUB_TOKEN. Add a fine-grained token with read-only Contents access to EpicGames/UnrealEngine."
+            exit 1
+          fi
+          AUTH_HEADER="$(printf 'x-access-token:%s' "$UE_GITHUB_TOKEN" | base64 -w0)"
+          if git -c http.extraheader="AUTHORIZATION: basic $AUTH_HEADER" ls-remote https://github.com/EpicGames/UnrealEngine.git HEAD >/dev/null; then
+            echo "Epic private repository authentication succeeded."
+            echo "Epic private repository authentication: **PASS**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::The Actions token cannot read EpicGames/UnrealEngine. Check token repository access and organization approval."
+            exit 1
+          fi
 
       - name: Detect engine and attempt compile
         shell: bash
